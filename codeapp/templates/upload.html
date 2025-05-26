@@ -1,0 +1,14 @@
+<h2>Upload Your C Code</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Check Code</button>
+</form>
+
+{% if error %}
+    <h3 style="color:red;">Compilation Errors:</h3>
+    <pre>{{ error }}</pre>
+{% elif result %}
+    <h3>Program Output:</h3>
+    <pre>{{ result }}</pre>
+{% endif %}

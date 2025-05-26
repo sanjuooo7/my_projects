@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Code Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --success-color: #1cc88a;
+            --danger-color: #e74a3b;
+            --warning-color: #f6c23e;
+            --light-bg: #f8f9fc;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d3e2;
+            border-radius: 0.35rem;
+            transition: all 0.3s;
+            padding: 2rem;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(78, 115, 223, 0.05);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .code-block {
+            background-color: #2d3748;
+            color: #f7fafc;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .plagiarism-score {
+            display: inline-block;
+            padding: 0.25em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.75em;
+            font-weight: 700;
+        }
+
+        .plagiarism-high {
+            background-color: rgba(231, 74, 59, 0.1);
+            color: var(--danger-color);
+        }
+
+        .plagiarism-medium {
+            background-color: rgba(246, 194, 62, 0.1);
+            color: var(--warning-color);
+        }
+
+        .plagiarism-low {
+            background-color: rgba(28, 200, 138, 0.1);
+            color: var(--success-color);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+
+        .tab-content {
+            background-color: white;
+            border-radius: 0 0.35rem 0.35rem 0.35rem;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-4">
+                    <h1 class="h3 text-primary mb-2">
+                        <i class="fas fa-code me-2"></i>C Code Analyzer
+                    </h1>
+                    <p class="text-muted">Upload your C program to check for compilation errors, run output, and plagiarism detection</p>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header py-3 bg-white">
+                        <ul class="nav nav-pills card-header-pills">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#single" data-bs-toggle="tab">
+                                    <i class="fas fa-file-alt me-2"></i>Single File
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#bulk" data-bs-toggle="tab">
+                                    <i class="fas fa-file-archive me-2"></i>Bulk Upload
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="single">
+                                <form method="post" enctype="multipart/form-data" class="upload-area text-center">
+                                    {% csrf_token %}
+                                    <div class="mb-4">
+                                        <i class="fas fa-file-code fa-3x text-primary mb-3"></i>
+                                        <h5 class="font-weight-bold">Upload Code File</h5>
+                                        <p class="text-muted">Select a file to analyze</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form.as_p }}
+                                    </div>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="fas fa-search me-2"></i>Analyze Code
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="tab-pane fade" id="bulk">
+                                <div class="text-center py-4">
+                                    <a href="/upload_zip" class="btn btn-outline-primary px-4">
+                                        <i class="fas fa-upload me-2"></i>Go to Bulk Upload
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if error or result or plagiarism %}
+                <div class="card">
+                    <div class="card-header py-3">
+                        <h5 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-chart-bar me-2"></i>Analysis Results
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if error %}
+                        <div class="mb-4">
+                            <h4 class="text-danger mb-3">
+                                <i class="fas fa-exclamation-circle me-2"></i>Compilation Errors
+                            </h4>
+                            <div class="code-block">
+                                {{ error }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if result %}
+                        <div class="mb-4">
+                            <h4 class="text-success mb-3">
+                                <i class="fas fa-check-circle me-2"></i>Program Output
+                            </h4>
+                            <div class="code-block">
+                                {{ result }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if plagiarism %}
+                        <div>
+                            <h4 class="mb-3">
+                                <i class="fas fa-clipboard-check me-2"></i>Plagiarism Detection
+                            </h4>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-info-circle me-2"></i>The following files show similarity with your submission:
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for file, score in plagiarism %}
+                                    <span class="plagiarism-score {% if score > 70 %}plagiarism-high{% elif score > 30 %}plagiarism-medium{% else %}plagiarism-low{% endif %}">
+                                        {{ file }} ({{ score }}%)
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Enhance form file input
+        document.querySelector('input[type="file"]').classList.add('form-control');
+
+        // Add filename display
+        document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+            var fileName = e.target.files[0]?.name || 'No file selected';
+            var label = document.createElement('small');
+            label.className = 'form-text text-muted mt-1 d-block';
+            label.textContent = 'Selected: ' + fileName;
+
+            // Remove previous label if exists
+            var oldLabel = document.querySelector('.file-selected-label');
+            if (oldLabel) oldLabel.remove();
+
+            label.classList.add('file-selected-label');
+            e.target.parentNode.appendChild(label);
+        });
+    </script>
+</body>
+</html>
