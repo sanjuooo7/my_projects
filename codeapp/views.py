@@ -13,7 +13,7 @@ def check_plagiarism(new_code, folder_path, current_file):
     for fname in os.listdir(folder_path):
         if fname == os.path.basename(current_file):
             continue
-        if fname.endswith(('.c', '.java', '.sql', '.sh')):
+        if fname.endswith(('.c', '.java', '.sql', '.sh', '.py')):
             existing_path = os.path.join(folder_path, fname)
             with open(existing_path, "r") as f:
                 existing_code = normalize_code(f.read())
@@ -22,111 +22,6 @@ def check_plagiarism(new_code, folder_path, current_file):
                     plagiarism_results.append((fname, round(similarity * 100, 2)))
     return plagiarism_results
 
-# def upload_code(request):
-#     result = None
-#     error = None
-#
-#     if request.method == 'POST':
-#         form = CodeUploadForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             code_file = request.FILES['code_file']
-#             media_dir = 'media'
-#             if not os.path.exists(media_dir):
-#                 os.makedirs(media_dir)
-#
-#             file_path = os.path.join(media_dir, code_file.name)
-#
-#             # Save file first
-#             with open(file_path, 'wb+') as destination:
-#                 for chunk in code_file.chunks():
-#                     destination.write(chunk)
-#
-#             if code_file.name.endswith('.c'):
-#                 print("code is C")
-#                 compile_cmd = f"gcc {file_path} -o {media_dir}/output.out"
-#                 try:
-#                     process = subprocess.Popen(compile_cmd.split(), stderr=subprocess.PIPE)
-#                     _, stderr = process.communicate()
-#                     if stderr:
-#                         error = stderr.decode()
-#                     else:
-#                         # If no error, run the program
-#                         run_cmd = f"./{media_dir}/output.out"
-#                         run_process = subprocess.Popen(run_cmd.split(), stdout=subprocess.PIPE)
-#                         output, _ = run_process.communicate()
-#                         result = output.decode()
-#                 except Exception as e:
-#                     error = str(e)
-#
-#             elif code_file.name.endswith('.java'):
-#                 print("code is Java")
-#
-#                 result, error = handle_java_file(file_path)
-#
-#             elif code_file.name.endswith('.sql'):
-#                 result, error = handle_sql_file(file_path)
-#
-#             elif code_file.name.endswith('.sh'):
-#                 result, error = handle_bash_file(file_path)
-#
-#
-#
-#
-#                 # TODO: elif file endswith .sh / .sql — add other language handlers
-#
-#     else:
-#         form = CodeUploadForm()
-#
-#     return render(request, 'upload.html', {'form': form, 'result': result, 'error': error})
-
-
-# def upload_code(request):
-#     result = None
-#     error = None
-#     plagiarism_report = []
-#
-#     if request.method == 'POST':
-#         form = CodeUploadForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             code_file = request.FILES['code_file']
-#
-#             media_dir = 'media'
-#             os.makedirs(media_dir, exist_ok=True)
-#
-#             file_path = os.path.join(media_dir, code_file.name)
-#             with open(file_path, 'wb+') as destination:
-#                 for chunk in code_file.chunks():
-#                     destination.write(chunk)
-#
-#             if code_file.name.endswith('.c'):
-#                 with open(file_path, 'r') as f:
-#                     new_code = normalize_code(f.read())
-#                 plagiarism_report = check_plagiarism(new_code, media_dir, file_path)
-#
-#                 # Compile and run
-#                 compile_cmd = f"gcc {file_path} -o media/output.out"
-#                 try:
-#                     process = subprocess.Popen(compile_cmd.split(), stderr=subprocess.PIPE)
-#                     _, stderr = process.communicate()
-#                     if stderr:
-#                         error = stderr.decode()
-#                     else:
-#                         run_cmd = "./media/output.out"
-#                         run_process = subprocess.Popen(run_cmd.split(), stdout=subprocess.PIPE)
-#                         output, _ = run_process.communicate()
-#                         result = output.decode()
-#                 except Exception as e:
-#                     error = str(e)
-#
-#     else:
-#         form = CodeUploadForm()
-#
-#     return render(request, 'upload.html', {
-#         'form': form,
-#         'result': result,
-#         'error': error,
-#         'plagiarism': plagiarism_report
-#     })
 
 
 def upload_code(request):
@@ -168,6 +63,11 @@ def upload_code(request):
                 result, error = handle_bash_file(file_path)
                 plagiarism_report = check_plagiarism(new_code, media_dir, file_path)
 
+            elif file_path.endswith('.py'):
+                result, error = handle_python_file(file_path)
+                plagiarism_report = check_plagiarism(new_code, media_dir, file_path)
+
+
     else:
         form = CodeUploadForm()
 
@@ -194,14 +94,6 @@ def handle_java_file(file_path):
         return "", str(e)
 
 
-import sqlite3
-
-# def handle_sql_file(file_path):
-#     try:
-#         run = subprocess.run(['sqlite3', ':memory:', f".read {file_path}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-#         return run.stdout, run.stderr
-#     except Exception as e:
-#         return "", str(e)
 
 def handle_sql_file(file_path):
     try:
@@ -285,6 +177,9 @@ def upload_zip(request):
                     elif name.endswith('.sh'):
                         lang = "Bash"
                         output, error = handle_bash_file(file_path)
+                    elif name.endswith('.py'):
+                        lang = "Python"
+                        output, error = handle_python_file(file_path)
 
                     if error:
                         status = "Error"
@@ -325,3 +220,16 @@ def upload_page(request):
     return render(request, 'upload.html')
 
 
+import subprocess
+
+def handle_python_file(file_path):
+    try:
+        run = subprocess.run(
+            ['python3', file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True  # Ensures output is string
+        )
+        return run.stdout.strip(), run.stderr.strip()
+    except Exception as e:
+        return "", str(e)
